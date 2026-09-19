@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/JiveshL-KDK/go-gator/internal/constants"
@@ -128,17 +129,18 @@ func resetAllUsers(s *state.State, cmd CommandInput) error {
 }
 
 func agg(s *state.State, cmd CommandInput) error {
-	feed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+
+	timeBetweenRequests, err := time.ParseDuration(constants.TIME_BW_REQ)
+
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to parse the duration: %w", err)
 	}
 
-	fmt.Println(feed.Channel.Title)
-	fmt.Println()
-	fmt.Println(feed.Channel.Description)
-	fmt.Println()
+	ticker := time.NewTicker(timeBetweenRequests)
 
-	return nil
+	for ; ; <-ticker.C {
+		rss.ScrapeFeeds(s, context.Background())
+	}
 }
 
 func addFeed(s *state.State, cmd CommandInput) error {
@@ -353,4 +355,42 @@ func unfollow(s *state.State, cmd CommandInput) error {
 
 	return nil
 
+}
+
+func browse(s *state.State, cmd CommandInput) error {
+	currentUser := s.GetUser()
+
+	currentUserRecord, err := s.Db.GetUser(context.Background(), currentUser)
+
+	if err != nil {
+		return fmt.Errorf("Failed to get current user: %w", err)
+	}
+
+	limit := 2
+
+	if len(cmd.args) > 0 {
+		conv, err := strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("Kinldy provide a valid argument: %w", err)
+		}
+
+		limit = conv
+	}
+
+	currentPosts, err := s.Db.GetPostsForAUser(context.Background(), database.GetPostsForAUserParams{
+		UserID: currentUserRecord.ID,
+		Limit:  int32(limit),
+	})
+
+	if err != nil {
+		return fmt.Errorf("Failed to get posts: %w", err)
+	}
+
+	for _, post := range currentPosts {
+		fmt.Println(post.Title)
+		fmt.Println(post.Description.String)
+		fmt.Println()
+	}
+
+	return nil
 }

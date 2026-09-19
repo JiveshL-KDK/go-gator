@@ -111,4 +111,10 @@ var gatorCommands CommandMap = CommandMap{
 		description: "unfollow a field",
 		handler:     middlewareLoggedIn(unfollow),
 	},
+	"browse": CommandType{
+		name:        "browse",
+		args:        []string{},
+		description: "browse posts",
+		handler:     middlewareLoggedIn(browse),
+	},
 }

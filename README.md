@@ -1,10 +1,12 @@
 # Go Gator
 
-Go Gator is a command-line RSS feed aggregator built in Go, backed by a PostgreSQL database. It's a learning project built while following the [Boot.dev](https://boot.dev) backend track.
+Go Gator (`gator`) is a command-line RSS feed aggregator built in Go, backed by a PostgreSQL database. It's a learning project built while following the [Boot.dev](https://boot.dev) backend track.
 
-> **Status:** v0.1 — user management (register/login/list/reset) is implemented. Feed following, fetching, and aggregation are coming next.
+> **Status:** v0.2 — user management, feed following, and RSS aggregation are all implemented.
 
 ## Prerequisites
+
+Before installing, make sure you have the following installed on your machine:
 
 - [Go](https://go.dev/doc/install) 1.27+
 - [PostgreSQL](https://www.postgresql.org/download/) running locally or remotely
@@ -12,18 +14,20 @@ Go Gator is a command-line RSS feed aggregator built in Go, backed by a PostgreS
 
 ## Installation
 
-Clone the repo and build the binary:
+Install the `gator` CLI directly with `go install`:
+
+```bash
+go install github.com/JiveshL-KDK/go-gator@latest
+```
+
+This compiles a standalone `gator` binary and places it in your `$GOPATH/bin` (or `$HOME/go/bin` by default) — make sure that directory is on your `$PATH`. Since Go programs compile to a single static binary, once installed you can run `gator` directly without needing the Go toolchain around.
+
+Alternatively, clone the repo and build it yourself:
 
 ```bash
 git clone https://github.com/JiveshL-KDK/go-gator.git
 cd go-gator
-go build -o go-gator
-```
-
-Or install it directly with `go install`:
-
-```bash
-go install github.com/JiveshL-KDK/go-gator@latest
+go build -o gator
 ```
 
 ## Configuration
@@ -44,25 +48,38 @@ Once the config file exists and points at a valid database, run the migrations i
 ## Usage
 
 ```bash
-./go-gator <command> [arguments]
+gator <command> [arguments]
 ```
+
+(If you built locally instead of using `go install`, run `./gator <command> [arguments]` from the repo directory instead.)
 
 ### Commands
 
-| Command    | Arguments     | Description                          |
-| ---------- | ------------- | ------------------------------------- |
-| `register` | `<username>`  | Create a new user and log in as them |
-| `login`    | `[username]`  | Log in as an existing user (with no argument, prints the currently logged-in user) |
-| `list`     | —             | List all registered users             |
-| `reset`    | —             | Delete all users from the database    |
+| Command      | Arguments                     | Description                                                                        |
+| ------------ | ------------------------------ | ----------------------------------------------------------------------------------- |
+| `register`   | `<username>`                   | Create a new user and log in as them                                                |
+| `login`      | `[username]`                   | Log in as an existing user (with no argument, prints the currently logged-in user)  |
+| `list`       | —                               | List all registered users                                                           |
+| `reset`      | —                               | Delete all users from the database                                                  |
+| `add`        | `<name> <url>`                 | Add a new RSS feed and automatically follow it                                      |
+| `list-feeds` | —                               | List all feeds added by any user                                                    |
+| `follow`     | `<url>`                        | Follow an existing feed by its URL                                                  |
+| `following`  | —                               | Show the feeds the current user is following                                        |
+| `unfollow`   | `<url>`                        | Unfollow a feed by its URL                                                          |
+| `agg`        | —                               | Continuously fetch the next feed due for a refresh and store new posts             |
+| `browse`     | `[limit]`                      | Show recent posts from feeds the current user follows (defaults to a set limit)     |
+
+A few commands (`add`, `list-feeds`, `follow`, `following`, `unfollow`, `browse`) require you to be logged in first with `login`.
 
 **Examples:**
 
 ```bash
-./go-gator register alice
-./go-gator login alice
-./go-gator list
-./go-gator reset
+gator register alice
+gator login alice
+gator add "Boot.dev Blog" https://blog.boot.dev/index.xml
+gator following
+gator agg
+gator browse 5
 ```
 
 ## Project Structure
@@ -73,7 +90,9 @@ Once the config file exists and points at a valid database, run the migrations i
 ├── internal/
 │   ├── commands/                # Command definitions and handlers
 │   ├── config/                  # Reads/writes ~/.gatorconfig.json
+│   ├── constants/                # Shared constant values
 │   ├── database/                # sqlc-generated database access code
+│   ├── rss/                     # RSS feed fetching and parsing
 │   └── state/                   # Shared app state (config + DB connection)
 ├── sql/
 │   ├── schema/                  # goose migrations
@@ -92,9 +111,10 @@ Once the config file exists and points at a valid database, run the migrations i
 
 ## Roadmap
 
-- [ ] Add and follow RSS feeds
-- [ ] Aggregate posts from followed feeds on a schedule
-- [ ] Browse aggregated posts from the CLI
+- [x] Add and follow RSS feeds
+- [x] Aggregate posts from followed feeds
+- [x] Browse aggregated posts from the CLI
+- [ ] Run aggregation on a recurring schedule
 
 ## License
 
